@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import BinaryIO
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,7 @@ from app.domain.audit import AuditAction, EntityType
 from app.domain.document_status import DocumentStatus
 from app.domain.filename import sanitize_filename
 from app.models.document import Document
+from app.models.document_page import DocumentPage
 from app.services import audit_service
 from app.storage.file_storage import FileStorage
 
@@ -180,7 +181,8 @@ def delete_document(db: Session, storage: FileStorage, document_id: uuid.UUID) -
         )
 
     document.deleted_at = datetime.now(UTC)
-    # M2/M3: document_pages, document_chunks 삭제가 같은 트랜잭션에 추가된다.
+    # 원문 텍스트는 소프트 삭제와 같은 트랜잭션에서 즉시 지운다. (M3: document_chunks 추가)
+    db.execute(delete(DocumentPage).where(DocumentPage.document_id == document.id))
     audit_service.record_event(
         db,
         action=AuditAction.DOCUMENT_DELETED,

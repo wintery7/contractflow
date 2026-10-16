@@ -35,6 +35,10 @@ class UnsupportedMediaTypeError(AppError):
     pass
 
 
+class ServiceUnavailableError(AppError):
+    pass
+
+
 class InvalidStateTransitionError(AppError):
     def __init__(self, entity: str, current: str, target: str) -> None:
         super().__init__(
