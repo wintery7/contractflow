@@ -24,7 +24,7 @@
 ### 환경
 - [ ] `docker compose up -d db` 후 `pg_isready` 성공, `CREATE EXTENSION vector` 가능 확인
 - [ ] `uv sync` 만으로 의존성 설치 재현 (`uv.lock` 커밋)
-- [ ] `.env.example` 존재, `.env`·업로드 폴더는 `.gitignore`
+- [ ] 환경변수 목록·기본값이 README에 문서화, `.env`·`.env.*`·업로드 폴더는 `.gitignore`
 
 ### 기능
 - [ ] `uv run alembic upgrade head` 로 `documents`, `audit_events` 생성, `alembic downgrade base` 후 재적용 성공

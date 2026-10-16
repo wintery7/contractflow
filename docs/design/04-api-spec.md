@@ -49,7 +49,7 @@
 | 요청 | `multipart/form-data`, `file` (필수) |
 | 응답 `201` | `DocumentResponse` + `Location` 헤더 |
 | 오류 | 400 빈 파일 · 413 크기 초과 · 415 PDF 아님 · 409 동일 파일 존재(`details.existing_document_id`) |
-| 검증 | 매직바이트 `%PDF-`, 크기 ≤ `MAX_UPLOAD_BYTES`(스트리밍 중 초과 시 즉시 중단), 파일명 정규화 |
+| 검증 | ① 미들웨어: `Content-Length` > 한도+64KB면 본문을 읽기 전에 413 (FastAPI 의존성은 multipart 파싱 *후*에 실행되므로 의존성으로는 조기 차단 불가) ② 서비스: 실제 바이트 수 ≤ `MAX_UPLOAD_BYTES`, 매직바이트 `%PDF-` ③ 파일명 정규화 |
 | DB 변경 | `documents` INSERT, `audit_events` INSERT |
 | 비동기 | 없음 (분석은 별도 요청) |
 
