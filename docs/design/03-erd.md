@@ -29,6 +29,7 @@ erDiagram
     documents {
         uuid id PK
         varchar original_filename
+        varchar content_type
         bigint size_bytes
         char sha256
         varchar storage_key
