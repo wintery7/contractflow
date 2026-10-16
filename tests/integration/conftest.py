@@ -39,8 +39,9 @@ def engine() -> Iterator[Engine]:
             pass
     except OperationalError as exc:
         pytest.fail(
-            "Test database is not reachable. Start it with `uv run python scripts/local_db.py start` "
-            "(or `docker compose up -d db`), or set TEST_DATABASE_URL. "
+            "Test database is not reachable. Start it with "
+            "`uv run python scripts/local_db.py start` (or `docker compose up -d db`), "
+            "or set TEST_DATABASE_URL. "
             f"({exc.__class__.__name__})",
             pytrace=False,
         )
