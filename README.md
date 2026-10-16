@@ -10,8 +10,9 @@
 | 마일스톤 | 상태 |
 |---|---|
 | M0 요구사항·설계 | 완료 — [docs/design](docs/design/) |
-| M1 백엔드 기반 (문서 업로드/조회/삭제, 이력, 마이그레이션, 테스트) | 완료 (로컬 PostgreSQL로 검증) |
-| M2 문서 분석 | 예정 |
+| M1 백엔드 기반 (문서 업로드/조회/삭제, 이력, 마이그레이션, 테스트) | 완료 |
+| M2 문서 분석 (PDF 추출, 비동기 분석, 구조화 추출, 근거 검증) | 완료 — [구현 기록](docs/design/07-m2-analysis-notes.md) |
+| M3 RAG | 예정 |
 
 ## 빠른 시작
 
@@ -36,17 +37,22 @@ uv run uvicorn app.main:app --reload --no-access-log
 | `STORAGE_DIR` | `./var/uploads` | 업로드 원본 저장 위치 |
 | `MAX_UPLOAD_BYTES` | `20971520` (20MB) | 업로드 최대 크기 |
 | `LOG_LEVEL` | `INFO` | 로그 레벨 |
-| `OPENAI_API_KEY` | 없음 | M2부터 사용 (LLM·임베딩) |
+| `OPENAI_API_KEY` | 없음 | 분석에 필요. 없으면 분석 요청이 `503 LLM_NOT_CONFIGURED` |
+| `LLM_MODEL` | `gpt-5.4-mini` | 구조화 추출 모델 |
+| `LLM_TIMEOUT_SECONDS` / `LLM_MAX_RETRIES` | `60` / `2` | 호출 타임아웃, SDK 재시도 횟수(429·5xx·타임아웃) |
+| `MAX_PAGES` / `MAX_ANALYSIS_CHARS` | `100` / `120000` | 분석 가능한 최대 페이지·글자 수 |
+| `MIN_TEXT_CHARS` | `50` | 이보다 적으면 스캔 PDF로 보고 `NO_TEXT_LAYER` |
 
-### 데이터베이스 실행 방법
+### 데이터베이스
 
-| 방법 | 명령 | 비고 |
-|---|---|---|
-| 로컬 (Docker 없이) | `uv run python scripts/local_db.py start / stop / status` | 개발 의존성 `pgserver`에 포함된 PostgreSQL 16 바이너리 사용, 데이터는 `var/pgdata`. 개발 전용 |
-| Docker | `docker compose up -d db` | 배포 환경과 같은 공식 이미지(`pgvector/pgvector:pg16`) |
+PostgreSQL 16 이상과 같은 서버의 `<DB이름>`, `<DB이름>_test` 두 데이터베이스가 필요하다.
+통합 테스트 DB는 `DATABASE_URL`의 DB 이름에 `_test`를 붙여 자동으로 정해지며, 이름이 `_test`로 끝나지 않으면 테스트가 실행을 거부한다(테스트가 스키마를 지웠다가 다시 만들기 때문).
 
-두 방법 모두 같은 계정·DB 이름·포트(5432)를 쓰므로 `DATABASE_URL`을 바꿀 필요가 없다.
-앱 컨테이너화와 Docker 기반 검증은 M5에서 진행한다.
+| 방법 | 비고 |
+|---|---|
+| 설치형 PostgreSQL (현재 개발 환경: 18.6, Windows 서비스) | pgvector 별도 설치 필요 (M3) |
+| `uv run python scripts/local_db.py start / stop / status` | 개발 의존성 `pgserver`의 PostgreSQL 16 + pgvector. 설치 없이 사용 가능, 개발 전용 |
+| `docker compose up -d db` | 공식 이미지 `pgvector/pgvector:pg16`. 앱 컨테이너화는 M5 |
 
 - Swagger UI: http://localhost:8000/docs
 - 헬스체크: `GET /health/live`, `GET /health/ready`
@@ -54,8 +60,9 @@ uv run uvicorn app.main:app --reload --no-access-log
 ## 테스트
 
 ```bash
-uv run pytest                        # 전체 (통합 테스트는 contractflow_test DB 필요)
+uv run pytest                        # 단위 + 통합 (LLM은 Fake, 외부 호출 없음)
 uv run pytest tests/unit             # DB 없이 실행 가능
+uv run pytest -m live                # 실제 OpenAI 호출 (비용 발생, 기본 실행에서 제외)
 uv run ruff check . && uv run ruff format --check .
 ```
 
@@ -71,6 +78,10 @@ app/
   models/      SQLAlchemy ORM
   schemas/     Pydantic 요청/응답
   storage/     파일 저장소 인터페이스와 로컬 구현
+  pipeline/    PDF 텍스트 추출, 정제, 품질 점검
+  extraction/  구조화 추출 스키마·프롬프트·근거 검증
+  llm/         LLM 공급자 인터페이스, OpenAI 구현, Fake
+  workers/     분석 실행기 (BackgroundTasks)
   core/        설정, 로깅, 요청 ID
 migrations/    Alembic
 tests/         unit / integration
