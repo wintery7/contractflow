@@ -18,12 +18,25 @@
 요구사항: Python 3.11.9, [uv](https://docs.astral.sh/uv/)
 
 ```bash
-cp .env.example .env                 # 값 채우기 (기존 .env가 있으면 필요한 키만 추가)
 uv sync                              # 의존성 설치 (uv.lock 기준)
 uv run python scripts/local_db.py start   # PostgreSQL 16 + pgvector (아래 참고)
 uv run alembic upgrade head          # 스키마 생성
 uv run uvicorn app.main:app --reload --no-access-log
 ```
+
+### 환경변수
+
+프로젝트 루트의 `.env`(git 제외) 또는 셸 환경변수로 설정한다. 모두 기본값이 있어 로컬 DB만 띄우면 바로 실행된다.
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `DATABASE_URL` | `postgresql+psycopg://contractflow:change-me@localhost:5432/contractflow` | 앱 DB |
+| `TEST_DATABASE_URL` | `…/contractflow_test` (같은 계정) | 통합 테스트 DB (셸 환경변수로만 읽음) |
+| `POSTGRES_PASSWORD` | `change-me` | 로컬/Docker DB 최초 생성 시 비밀번호 (셸 환경변수) |
+| `STORAGE_DIR` | `./var/uploads` | 업로드 원본 저장 위치 |
+| `MAX_UPLOAD_BYTES` | `20971520` (20MB) | 업로드 최대 크기 |
+| `LOG_LEVEL` | `INFO` | 로그 레벨 |
+| `OPENAI_API_KEY` | 없음 | M2부터 사용 (LLM·임베딩) |
 
 ### 데이터베이스 실행 방법
 

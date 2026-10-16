@@ -54,7 +54,6 @@ contract-flow/
 ├── Dockerfile
 ├── pyproject.toml / uv.lock
 ├── alembic.ini
-├── .env.example                 # 커밋 O
 ├── .env                         # 커밋 X
 └── README.md
 ```
@@ -108,7 +107,7 @@ contract-flow/
      pgdata:
    ```
    테스트 DB는 같은 컨테이너에 `contractflow_test` 데이터베이스를 별도로 만든다.
-5. `.env.example`
+5. 환경변수 (`.env`, git 제외 — 전체 목록과 기본값은 README 참고)
    ```
    APP_ENV=local
    DATABASE_URL=postgresql+psycopg://contractflow:change-me@localhost:5432/contractflow
