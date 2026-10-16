@@ -1,0 +1,29 @@
+from enum import StrEnum
+
+
+class ActorType(StrEnum):
+    SYSTEM = "SYSTEM"
+    # 인증이 없으므로 '누가' 했는지 주장하지 않는다. 인증 도입 시 USER로 대체한다.
+    UNAUTHENTICATED_CLIENT = "UNAUTHENTICATED_CLIENT"
+
+
+class EntityType(StrEnum):
+    DOCUMENT = "DOCUMENT"
+    ANALYSIS = "ANALYSIS"
+    TASK = "TASK"
+
+
+class AuditAction(StrEnum):
+    DOCUMENT_UPLOADED = "DOCUMENT_UPLOADED"
+    DOCUMENT_DELETED = "DOCUMENT_DELETED"
+    ANALYSIS_REQUESTED = "ANALYSIS_REQUESTED"
+    ANALYSIS_STARTED = "ANALYSIS_STARTED"
+    ANALYSIS_SUCCEEDED = "ANALYSIS_SUCCEEDED"
+    ANALYSIS_FAILED = "ANALYSIS_FAILED"
+    TASK_CREATED = "TASK_CREATED"
+    TASK_UPDATED = "TASK_UPDATED"
+
+
+class AuditOutcome(StrEnum):
+    SUCCESS = "SUCCESS"
+    FAILURE = "FAILURE"
