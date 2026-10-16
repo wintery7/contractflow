@@ -1,0 +1,22 @@
+# M1: DB만 컨테이너로 실행하고 앱은 로컬(uv)에서 실행한다. 앱 컨테이너는 M5에서 추가.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: contractflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: contractflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 최초 기동 시 1회만 실행됨 (테스트용 DB 생성)
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U contractflow -d contractflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
