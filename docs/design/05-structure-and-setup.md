@@ -72,7 +72,7 @@ contract-flow/
 | Python | 3.11.9 ✅ |
 | uv | 0.12.5 ✅ |
 | git | 2.55.0 ✅ (작업 폴더는 아직 git 저장소 아님) |
-| Docker | ❌ 미설치 — **M1 시작 전 설치 필요** |
+| Docker | ❌ 미설치 (WSL 미설치). **M1~M4는 로컬 DB(`scripts/local_db.py`, pgserver)로 개발, Docker 배포·검증은 M5** |
 
 ### 준비 절차
 1. **Docker Desktop 설치** (WSL2 백엔드). 설치 후 `docker version`, `docker compose version` 확인.

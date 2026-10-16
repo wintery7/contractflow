@@ -10,20 +10,30 @@
 | 마일스톤 | 상태 |
 |---|---|
 | M0 요구사항·설계 | 완료 — [docs/design](docs/design/) |
-| M1 백엔드 기반 (문서 업로드/조회/삭제, 이력, 마이그레이션, 테스트) | 구현 완료, Docker 환경 검증 대기 |
+| M1 백엔드 기반 (문서 업로드/조회/삭제, 이력, 마이그레이션, 테스트) | 완료 (로컬 PostgreSQL로 검증) |
 | M2 문서 분석 | 예정 |
 
 ## 빠른 시작
 
-요구사항: Python 3.11.9, [uv](https://docs.astral.sh/uv/), Docker Desktop
+요구사항: Python 3.11.9, [uv](https://docs.astral.sh/uv/)
 
 ```bash
 cp .env.example .env                 # 값 채우기 (기존 .env가 있으면 필요한 키만 추가)
-docker compose up -d db              # PostgreSQL 16 + pgvector
 uv sync                              # 의존성 설치 (uv.lock 기준)
+uv run python scripts/local_db.py start   # PostgreSQL 16 + pgvector (아래 참고)
 uv run alembic upgrade head          # 스키마 생성
 uv run uvicorn app.main:app --reload --no-access-log
 ```
+
+### 데이터베이스 실행 방법
+
+| 방법 | 명령 | 비고 |
+|---|---|---|
+| 로컬 (Docker 없이) | `uv run python scripts/local_db.py start / stop / status` | 개발 의존성 `pgserver`에 포함된 PostgreSQL 16 바이너리 사용, 데이터는 `var/pgdata`. 개발 전용 |
+| Docker | `docker compose up -d db` | 배포 환경과 같은 공식 이미지(`pgvector/pgvector:pg16`) |
+
+두 방법 모두 같은 계정·DB 이름·포트(5432)를 쓰므로 `DATABASE_URL`을 바꿀 필요가 없다.
+앱 컨테이너화와 Docker 기반 검증은 M5에서 진행한다.
 
 - Swagger UI: http://localhost:8000/docs
 - 헬스체크: `GET /health/live`, `GET /health/ready`
