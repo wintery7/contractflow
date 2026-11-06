@@ -12,6 +12,7 @@
 | M0 요구사항·설계 | 완료 — [docs/design](docs/design/) |
 | M1 백엔드 기반 (문서 업로드/조회/삭제, 이력, 마이그레이션, 테스트) | 완료 |
 | M2 문서 분석 (PDF 추출, 비동기 분석, 구조화 추출, 근거 검증) | 완료 — [구현 기록](docs/design/07-m2-analysis-notes.md) |
+| M4 검토 업무 (AI 제안 승인, 상태 전이, 낙관적 잠금, 이력) | 완료 — [구현 기록](docs/design/08-m4-task-notes.md) |
 | M3 RAG | 예정 |
 
 ## 빠른 시작
