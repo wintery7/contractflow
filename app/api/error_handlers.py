@@ -15,6 +15,7 @@ from app.core.errors import (
     InvalidStateTransitionError,
     NotFoundError,
     PayloadTooLargeError,
+    ServiceUnavailableError,
     UnsupportedMediaTypeError,
 )
 from app.core.logging import request_id_var
@@ -29,6 +30,7 @@ STATUS_BY_ERROR: dict[type[AppError], int] = {
     PayloadTooLargeError: status.HTTP_413_CONTENT_TOO_LARGE,
     UnsupportedMediaTypeError: status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
     InvalidStateTransitionError: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    ServiceUnavailableError: status.HTTP_503_SERVICE_UNAVAILABLE,
 }
 
 

@@ -58,8 +58,7 @@
 {
   "id": "uuid", "original_filename": "service_agreement.pdf",
   "size_bytes": 482113, "status": "UPLOADED", "page_count": null,
-  "error_code": null, "created_at": "...", "updated_at": "...",
-  "latest_analysis_id": null
+  "error_code": null, "created_at": "...", "updated_at": "..."
 }
 ```
 테스트: 정상 업로드 201 / 확장자는 .pdf지만 내용이 PNG → 415 / 0바이트 → 400 / 한도+1바이트 → 413 / 같은 파일 2회 → 409 / 파일명 `../../etc/passwd.pdf` → 저장 키는 UUID, 파일명은 정규화.

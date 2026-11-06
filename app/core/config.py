@@ -21,7 +21,23 @@ class Settings(BaseSettings):
     storage_dir: Path = Path("var/uploads")
     max_upload_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
 
+    # 문서 처리 한도
+    max_pages: int = Field(default=100, gt=0)
+    # 구조화 추출에 한 번에 보낼 수 있는 최대 글자 수 (한국어는 대략 1~1.5자당 1토큰)
+    max_analysis_chars: int = Field(default=120_000, gt=0)
+    # 문서 전체 글자 수가 이보다 적으면 텍스트 레이어가 없는(스캔) PDF로 본다
+    min_text_chars: int = Field(default=50, ge=0)
+
+    # LLM
     openai_api_key: SecretStr | None = None
+    llm_model: str = "gpt-5.4-mini"
+    llm_timeout_seconds: float = Field(default=60.0, gt=0)
+    # SDK가 429/5xx/타임아웃에 대해 지수 백오프로 재시도하는 횟수
+    llm_max_retries: int = Field(default=2, ge=0)
+
+    # 앱 시작 시 중단된(하트비트가 끊긴) 분석을 FAILED로 정리
+    recover_stale_analyses_on_startup: bool = True
+    analysis_stale_after_seconds: int = Field(default=900, gt=0)
 
 
 @lru_cache

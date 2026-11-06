@@ -5,8 +5,10 @@ requires-python = ">=3.11,<3.12"
 dependencies = [
     "alembic>=1.20.0",
     "fastapi>=0.143.2",
+    "openai>=3.31.0",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.0",
+    "pymupdf>=1.28.2",
     "python-multipart>=0.0.32",
     "sqlalchemy>=2",
     "uvicorn[standard]>=0.54.0",
@@ -22,7 +24,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not live'"
 markers = ["live: calls real external APIs (excluded from default runs)"]
 filterwarnings = ["error::DeprecationWarning:app.*"]
 
