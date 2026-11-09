@@ -20,7 +20,7 @@ from app.llm.base import LLMClient, LLMRequestRejectedError, LLMUnavailableError
 from app.llm.embeddings import Embedder
 from app.llm.structured import LLMCallRecord, StructuredOutputError
 from app.models.document_chunk import DocumentChunk
-from app.rag.answerer import QA_PROMPT_VERSION, chunk_label, generate_answer
+from app.rag.answerer import QA_PROMPT_VERSION, AnswerOutput, chunk_label, generate_answer
 from app.rag.indexer import embed_texts
 from app.rag.retriever import RetrievedChunk, search_document
 from app.services import document_service
@@ -55,6 +55,22 @@ class QAResult:
     top_k: int
     max_score: float | None
     min_score: float
+
+
+def resolve_answer(
+    output: AnswerOutput, retrieved_count: int
+) -> tuple[AnswerStatus, InsufficientReason | None, str | None, set[str]]:
+    """모델 출력 → 최종 상태. 서비스와 평가 스크립트가 같은 규칙을 쓰도록 순수 함수로 둔다.
+
+    실제로 넘긴 청크의 라벨만 인용으로 인정하고, 유효한 인용이 없으면 답을 돌려주지 않는다.
+    """
+    valid_labels = {chunk_label(i) for i in range(retrieved_count)}
+    cited = {label for label in output.cited_chunks if label in valid_labels}
+    if not output.answerable:
+        return AnswerStatus.INSUFFICIENT_EVIDENCE, InsufficientReason.MODEL_DECLINED, None, cited
+    if not cited:
+        return AnswerStatus.INSUFFICIENT_EVIDENCE, InsufficientReason.NO_VALID_CITATION, None, cited
+    return AnswerStatus.ANSWERED, None, output.answer, cited
 
 
 def _ensure_index(db: Session, document_id: uuid.UUID, embedding_model: str) -> None:
@@ -143,25 +159,8 @@ def answer_question(
         # 성공·실패와 관계없이 LLM 호출 기록은 남긴다.
         db.commit()
 
-    labels = {chunk_label(i): chunk for i, chunk in enumerate(retrieved)}
-    cited = {label for label in output.cited_chunks if label in labels}
+    status, reason, answer, cited = resolve_answer(output, len(retrieved))
     citations = [Citation(c, chunk_label(i) in cited) for i, c in enumerate(retrieved)]
-
-    if not output.answerable:
-        status, reason, answer = (
-            AnswerStatus.INSUFFICIENT_EVIDENCE,
-            InsufficientReason.MODEL_DECLINED,
-            None,
-        )
-    elif not cited:
-        # 근거를 대지 못한 답은 돌려주지 않는다.
-        status, reason, answer = (
-            AnswerStatus.INSUFFICIENT_EVIDENCE,
-            InsufficientReason.NO_VALID_CITATION,
-            None,
-        )
-    else:
-        status, reason, answer = AnswerStatus.ANSWERED, None, output.answer
 
     logger.info(
         "question answered",
