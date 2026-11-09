@@ -24,7 +24,8 @@ BIN_DIR = Path(pgserver.__file__).parent / "pginstall" / "bin"
 
 USER = "contractflow"
 PASSWORD = os.environ.get("POSTGRES_PASSWORD", "change-me")
-PORT = os.environ.get("LOCAL_DB_PORT", "5432")
+# 설치형 PostgreSQL(기본 5432)과 충돌하지 않도록 5433을 기본으로 쓴다.
+PORT = os.environ.get("LOCAL_DB_PORT", "5433")
 DATABASES = ("contractflow", "contractflow_test")
 
 

@@ -35,6 +35,17 @@ class Settings(BaseSettings):
     # SDK가 429/5xx/타임아웃에 대해 지수 백오프로 재시도하는 횟수
     llm_max_retries: int = Field(default=2, ge=0)
 
+    # RAG
+    embedding_model: str = "text-embedding-3-small"
+    # document_chunks.embedding 컬럼 차원과 같아야 한다 (바꾸면 마이그레이션 필요)
+    embedding_dimensions: int = 1536
+    chunk_max_chars: int = Field(default=500, gt=50)
+    chunk_overlap_chars: int = Field(default=100, ge=0)
+    qa_top_k: int = Field(default=5, ge=1, le=20)
+    # 최고 유사도가 이 값보다 낮으면 LLM을 호출하지 않고 '근거 부족'으로 응답한다.
+    # 값은 평가셋으로 정한다 (docs/evaluation.md).
+    qa_min_score: float = Field(default=0.25, ge=0, le=1)
+
     # 앱 시작 시 중단된(하트비트가 끊긴) 분석을 FAILED로 정리
     recover_stale_analyses_on_startup: bool = True
     analysis_stale_after_seconds: int = Field(default=900, gt=0)

@@ -15,10 +15,12 @@ from app.core.config import Settings
 from app.domain.analysis import AnalysisStatus
 from app.domain.document_status import DocumentStatus
 from app.llm.base import LLMUnavailableError
+from app.llm.embeddings import FakeEmbedder
 from app.llm.fake import FakeLLMClient
 from app.models.audit_event import AuditEvent
 from app.models.document import Document
 from app.models.document_analysis import DocumentAnalysis
+from app.models.document_chunk import DocumentChunk
 from app.models.document_page import DocumentPage
 from app.models.llm_call import LlmCall
 from app.services import analysis_service
@@ -103,7 +105,10 @@ def test_successful_analysis_persists_pages_calls_and_audit(
     calls = db_session.scalars(
         select(LlmCall).where(LlmCall.analysis_id == uuid.UUID(analysis_id))
     ).all()
-    assert [(c.purpose, c.status, c.attempt) for c in calls] == [("FIELD_EXTRACTION", "SUCCESS", 1)]
+    assert sorted((c.purpose, c.status, c.attempt) for c in calls) == [
+        ("EMBEDDING", "SUCCESS", 1),
+        ("FIELD_EXTRACTION", "SUCCESS", 1),
+    ]
 
     actions = db_session.scalars(
         select(AuditEvent.action).where(AuditEvent.document_id == doc_uuid).order_by(AuditEvent.id)
@@ -195,7 +200,7 @@ def test_runner_ignores_analysis_that_is_not_queued(
     analysis_id = uuid.UUID(start(client, document_id).json()["id"])
     llm = FakeLLMClient([])  # 호출되면 AssertionError
 
-    AnalysisRunner(session_factory, storage, llm, settings).run(analysis_id)
+    AnalysisRunner(session_factory, storage, llm, settings, FakeEmbedder()).run(analysis_id)
 
     assert llm.calls == []
 
@@ -240,7 +245,9 @@ def test_llm_outage_fails_analysis_and_is_logged(
     assert analysis["stage"] == "FIELD_EXTRACTION"
     assert analysis["error"]["code"] == "LLM_UNAVAILABLE"
     calls = db_session.scalars(
-        select(LlmCall).where(LlmCall.analysis_id == uuid.UUID(analysis_id))
+        select(LlmCall).where(
+            LlmCall.analysis_id == uuid.UUID(analysis_id), LlmCall.purpose == "FIELD_EXTRACTION"
+        )
     ).all()
     assert [(c.status, c.error_code) for c in calls] == [("ERROR", "LLM_UNAVAILABLE")]
     actions = db_session.scalars(
@@ -261,7 +268,7 @@ def test_invalid_llm_output_twice_fails_analysis(
     assert analysis["error"]["code"] == "LLM_INVALID_OUTPUT"
     statuses = db_session.scalars(
         select(LlmCall.status)
-        .where(LlmCall.analysis_id == uuid.UUID(analysis_id))
+        .where(LlmCall.analysis_id == uuid.UUID(analysis_id), LlmCall.purpose == "FIELD_EXTRACTION")
         .order_by(LlmCall.attempt)
     ).all()
     assert statuses == ["INVALID_OUTPUT", "INVALID_OUTPUT"]
@@ -349,3 +356,62 @@ def test_recent_running_analysis_is_left_alone(client: TestClient, db_session: S
     analysis_service.request_analysis(db_session, document_id, force=False, llm_model="fake-model")
 
     assert analysis_service.fail_stale_analyses(db_session, stale_after=timedelta(minutes=15)) == 0
+
+
+# ---------- 색인 (M3) ----------
+
+
+def test_analysis_indexes_chunks_with_page_ranges(
+    client: TestClient, db_session: Session, fake_embedder: FakeEmbedder
+) -> None:
+    document_id = upload_contract(client)
+    start(client, document_id)
+
+    chunks = db_session.scalars(
+        select(DocumentChunk)
+        .where(DocumentChunk.document_id == uuid.UUID(document_id))
+        .order_by(DocumentChunk.chunk_index)
+    ).all()
+    assert len(chunks) >= 3
+    assert [c.chunk_index for c in chunks] == list(range(len(chunks)))
+    assert {c.embedding_model for c in chunks} == {fake_embedder.model}
+    assert chunks[0].page_start == 1 and chunks[-1].page_end == 3
+    assert all(len(c.embedding) == 1536 for c in chunks)
+    assert len(fake_embedder.calls) == 1  # 청크 전체를 한 번에 임베딩
+
+
+def test_reanalysis_replaces_chunks(client: TestClient, db_session: Session) -> None:
+    document_id = upload_contract(client)
+    start(client, document_id)
+    before = count(db_session, DocumentChunk, document_id=uuid.UUID(document_id))
+
+    start(client, document_id, force=True)
+
+    assert count(db_session, DocumentChunk, document_id=uuid.UUID(document_id)) == before
+
+
+def test_embedding_outage_fails_analysis_at_embedding_stage(
+    client: TestClient, fake_embedder: FakeEmbedder, fake_llm: FakeLLMClient
+) -> None:
+    def broken(_texts: list[str]) -> None:
+        raise LLMUnavailableError("timeout")
+
+    fake_embedder.embed = broken  # type: ignore[method-assign,assignment]
+    document_id = upload_contract(client)
+
+    analysis_id = start(client, document_id).json()["id"]
+
+    analysis = client.get(f"/api/v1/analyses/{analysis_id}").json()
+    assert analysis["status"] == "FAILED"
+    assert analysis["stage"] == "EMBEDDING"
+    assert analysis["error"]["code"] == "EMBEDDING_UNAVAILABLE"
+    assert fake_llm.calls == []  # 색인에 실패하면 구조화 추출로 넘어가지 않는다
+
+
+def test_deleting_document_removes_chunks(client: TestClient, db_session: Session) -> None:
+    document_id = upload_contract(client)
+    start(client, document_id)
+
+    client.delete(f"{DOCS}/{document_id}")
+
+    assert count(db_session, DocumentChunk, document_id=uuid.UUID(document_id)) == 0

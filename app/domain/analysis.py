@@ -6,7 +6,7 @@ from app.core.errors import InvalidStateTransitionError
 
 # 분석 로직(추출·정제·프롬프트 구성)이 바뀌면 올린다. 같은 버전·모델·프롬프트로 이미 성공한
 # 분석이 있으면 재사용하고, 하나라도 다르면 새로 분석한다.
-PIPELINE_VERSION = "m2-v1"
+PIPELINE_VERSION = "m3-v1"  # m3: 청킹·임베딩·색인 단계 추가
 
 
 class AnalysisStatus(StrEnum):
@@ -20,9 +20,12 @@ IN_PROGRESS_STATUSES = frozenset({AnalysisStatus.QUEUED, AnalysisStatus.RUNNING}
 
 
 class AnalysisStage(StrEnum):
-    """실패 지점을 추적하기 위한 실행 단계. M3에서 CHUNKING/EMBEDDING/INDEXING이 추가된다."""
+    """실패 지점을 추적하기 위한 실행 단계."""
 
     EXTRACTING = "EXTRACTING"
+    CHUNKING = "CHUNKING"
+    EMBEDDING = "EMBEDDING"
+    INDEXING = "INDEXING"
     FIELD_EXTRACTION = "FIELD_EXTRACTION"
 
 
@@ -36,6 +39,8 @@ class AnalysisErrorCode(StrEnum):
     LLM_REQUEST_REJECTED = "LLM_REQUEST_REJECTED"
     LLM_INVALID_OUTPUT = "LLM_INVALID_OUTPUT"
     LLM_NOT_CONFIGURED = "LLM_NOT_CONFIGURED"
+    EMBEDDING_UNAVAILABLE = "EMBEDDING_UNAVAILABLE"
+    EMBEDDING_REQUEST_REJECTED = "EMBEDDING_REQUEST_REJECTED"
     INTERRUPTED = "INTERRUPTED"
     INTERNAL_ERROR = "INTERNAL_ERROR"
 
