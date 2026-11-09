@@ -28,6 +28,8 @@ class FileStorage(Protocol):
 
     def path(self, key: str) -> Path: ...
 
+    def list_keys(self) -> list[str]: ...
+
 
 class LocalFileStorage:
     def __init__(self, root: Path) -> None:
@@ -56,3 +58,7 @@ class LocalFileStorage:
 
     def exists(self, key: str) -> bool:
         return self.path(key).is_file()
+
+    def list_keys(self) -> list[str]:
+        # 저장 키 형식에 맞는 파일만 돌려준다 (임시 파일·기타 파일 제외)
+        return sorted(p.name for p in self._root.iterdir() if _KEY_PATTERN.match(p.name))
