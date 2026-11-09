@@ -1,5 +1,7 @@
 # 03. 데이터베이스 설계 (ERD 초안)
 
+> 최종 스키마의 정본은 [`migrations/`](../../migrations/versions/)이다. M0 이후 추가·변경 사항은 이 문서 끝의 "구현 후 변경 사항"을 참고한다.
+
 > 상태: M0 초안 (2026-10-16) · 실제 스키마의 정본은 `migrations/`(Alembic)이며 이 문서는 설계 의도를 기록한다.
 
 ## 1. 핵심 결정
@@ -196,3 +198,15 @@ UPLOADED ──▶ PROCESSING ──▶ COMPLETED
 | llm_calls | 유지 | 90일 (정책값) |
 
 - 분석이 `RUNNING`인 문서는 삭제 불가(`409`) — 실행 중인 작업이 삭제된 청크를 다시 쓰는 경쟁 조건 방지.
+
+## 5. 구현 후 변경 사항 (M1~M5)
+
+| 변경 | 이유 |
+|---|---|
+| `document_chunks` 추가: `embedding vector(1536)`, `embedding_model`, `UNIQUE(document_id, chunk_index)` | 문서 범위 정확 검색. 유니크 인덱스의 선두 컬럼이 `document_id`라 별도 인덱스 불필요. HNSW 미사용 |
+| `document_analyses.created_at`, `heartbeat_at`, `tasks.created_at`/`updated_at` 기본값 `clock_timestamp()` | `now()`는 트랜잭션 시작 시각이라 '최신' 판단이 흔들림 |
+| `document_analyses`에 `result_iff_succeeded`, `error_iff_failed` CHECK | 상태와 결과·오류 컬럼이 어긋나지 않게 |
+| `tasks.source_reference` CHECK | AI 제안 업무는 출처 분석·항목이 반드시 있어야 함 |
+| `tasks.source_analysis_id` FK는 SET NULL 대신 기본(RESTRICT) | 출처를 잃은 AI 업무가 생기지 않게. 분석은 문서와 함께만 삭제됨 |
+| 문서 삭제 시 `document_pages`와 `document_chunks`를 같은 트랜잭션에서 삭제 | 원문과 임베딩을 즉시 제거 |
+| `llm_calls.purpose`: `FIELD_EXTRACTION`, `QA_ANSWER`, `EMBEDDING` | 분석·질의응답·임베딩 호출 모두 기록 |
