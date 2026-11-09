@@ -1,4 +1,5 @@
-# M1: DB만 컨테이너로 실행하고 앱은 로컬(uv)에서 실행한다. 앱 컨테이너는 M5에서 추가.
+# docker compose up --build  →  http://localhost:8000/docs
+# .env의 OPENAI_API_KEY를 앱 컨테이너에 전달한다. DB 접속 정보는 컨테이너 네트워크 기준으로 덮어쓴다.
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -6,8 +7,9 @@ services:
       POSTGRES_USER: contractflow
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
       POSTGRES_DB: contractflow
+    # 호스트의 설치형 PostgreSQL(5432)·로컬 개발 DB(5433)와 겹치지 않게 5434로 노출한다.
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       # 최초 기동 시 1회만 실행됨 (테스트용 DB 생성)
@@ -18,5 +20,20 @@ services:
       timeout: 3s
       retries: 10
 
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://contractflow:${POSTGRES_PASSWORD:-change-me}@db:5432/contractflow
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/data/uploads
+
 volumes:
   pgdata:
+  uploads:
