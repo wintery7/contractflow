@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     app_env: str = "local"
     log_level: str = "INFO"
 
-    database_url: str = "postgresql+psycopg://contractflow:change-me@localhost:5432/contractflow"
+    # 기본값은 scripts/local_db.py로 띄운 로컬 개발 DB (pgvector 포함, 5433)
+    database_url: str = "postgresql+psycopg://contractflow:change-me@localhost:5433/contractflow"
 
     storage_dir: Path = Path("var/uploads")
     max_upload_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
