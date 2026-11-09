@@ -5,6 +5,7 @@
   → 테스트끼리 데이터가 섞이지 않고, 서비스 코드는 운영과 똑같이 commit()을 호출한다.
 """
 
+import json
 import os
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -18,11 +19,14 @@ from sqlalchemy import Connection, Engine, create_engine, make_url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_llm_client, get_session_factory, get_storage
+from app.api.deps import get_embedder, get_llm_client, get_session_factory, get_storage
 from app.core.config import Settings, get_settings
 from app.db.session import get_db
+from app.llm.base import ChatMessage
+from app.llm.embeddings import FakeEmbedder
 from app.llm.fake import FakeLLMClient
 from app.main import create_app
+from app.rag.answerer import QA_SYSTEM_PROMPT
 from app.storage.file_storage import LocalFileStorage
 from tests.factories import extraction_json
 
@@ -135,10 +139,27 @@ def storage(settings: Settings) -> LocalFileStorage:
     return LocalFileStorage(settings.storage_dir)
 
 
+def _default_response(system: str, _messages: list[ChatMessage]) -> str:
+    if system == QA_SYSTEM_PROMPT:
+        return json.dumps(
+            {"answerable": True, "answer": "2026년 12월 31일까지입니다.", "cited_chunks": ["C1"]},
+            ensure_ascii=False,
+        )
+    return extraction_json()
+
+
 @pytest.fixture
 def fake_llm() -> FakeLLMClient:
-    """기본: 항상 정상 추출 결과를 돌려준다. 테스트에서 responses를 바꿔 실패를 주입한다."""
-    return FakeLLMClient(lambda _system, _messages: extraction_json())
+    """기본: 분석에는 정상 추출 결과, 질의응답에는 C1을 인용한 답을 돌려준다.
+
+    테스트에서 _responses를 목록으로 바꿔 실패·이상 출력을 주입한다.
+    """
+    return FakeLLMClient(_default_response)
+
+
+@pytest.fixture
+def fake_embedder() -> FakeEmbedder:
+    return FakeEmbedder()
 
 
 @pytest.fixture
@@ -147,6 +168,7 @@ def app(
     settings: Settings,
     storage: LocalFileStorage,
     fake_llm: FakeLLMClient,
+    fake_embedder: FakeEmbedder,
 ) -> FastAPI:
     def get_test_db() -> Iterator[Session]:
         session = session_factory()
@@ -161,6 +183,7 @@ def app(
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_storage] = lambda: storage
     app.dependency_overrides[get_llm_client] = lambda: fake_llm
+    app.dependency_overrides[get_embedder] = lambda: fake_embedder
     return app
 
 

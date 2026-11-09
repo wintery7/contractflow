@@ -32,14 +32,17 @@ from app.extraction.extractor import LLMCallRecord, extract_contract_fields
 from app.extraction.prompts import PROMPT_VERSION
 from app.extraction.schemas import DocumentStats
 from app.extraction.verifier import build_result
-from app.llm.base import LLMClient
+from app.llm.base import LLMClient, LLMRequestRejectedError, LLMUnavailableError
+from app.llm.embeddings import Embedder
 from app.models.document import Document
 from app.models.document_analysis import DocumentAnalysis
 from app.models.document_page import DocumentPage
-from app.models.llm_call import LlmCall
+from app.pipeline.chunker import chunk_pages
 from app.pipeline.pdf_extractor import PageText, extract_pages
 from app.pipeline.text_cleaner import clean_pages, compute_stats, ensure_analyzable
+from app.rag.indexer import embed_texts, replace_chunks
 from app.services import audit_service
+from app.services.llm_call_log import record_llm_call
 from app.storage.file_storage import FileStorage
 
 logger = logging.getLogger(__name__)
@@ -51,6 +54,7 @@ class AnalysisRunner:
     storage: FileStorage
     llm: LLMClient
     settings: Settings
+    embedder: Embedder
 
     def run(self, analysis_id: uuid.UUID, request_id: str | None = None) -> None:
         # 백그라운드 작업에도 요청 ID를 이어 붙여 로그를 한 흐름으로 추적한다.
@@ -97,11 +101,16 @@ class AnalysisRunner:
 
         try:
             pages, stats = self._extract_text(db, document)
+            self._index(db, analysis, document, pages)
             self._enter_stage(analysis, AnalysisStage.FIELD_EXTRACTION)
             db.commit()
 
             extraction = extract_contract_fields(
-                pages, self.llm, on_call=lambda record: self._record_call(db, analysis, record)
+                pages,
+                self.llm,
+                on_call=lambda record: self._record_call(
+                    db, analysis, record, "FIELD_EXTRACTION", self.llm.provider, PROMPT_VERSION
+                ),
             )
             result = build_result(extraction, pages, stats)
         except AnalysisFailure as failure:
@@ -160,6 +169,41 @@ class AnalysisRunner:
             page_count=stats.page_count, char_count=stats.char_count, empty_pages=stats.empty_pages
         )
 
+    def _index(
+        self, db: Session, analysis: DocumentAnalysis, document: Document, pages: list[PageText]
+    ) -> None:
+        """청킹 → 임베딩 → 색인. 각 단계를 커밋해 실패 지점(stage)이 남게 한다."""
+        self._enter_stage(analysis, AnalysisStage.CHUNKING)
+        db.commit()
+        chunks = chunk_pages(
+            pages,
+            max_chars=self.settings.chunk_max_chars,
+            overlap_chars=self.settings.chunk_overlap_chars,
+        )
+
+        self._enter_stage(analysis, AnalysisStage.EMBEDDING)
+        db.commit()
+        try:
+            vectors = embed_texts(
+                self.embedder,
+                [chunk.content for chunk in chunks],
+                on_call=lambda record: self._record_call(
+                    db, analysis, record, "EMBEDDING", self.embedder.provider, None
+                ),
+            )
+        except LLMUnavailableError as exc:
+            raise AnalysisFailure(
+                AnalysisErrorCode.EMBEDDING_UNAVAILABLE, "The embedding request failed."
+            ) from exc
+        except LLMRequestRejectedError as exc:
+            raise AnalysisFailure(
+                AnalysisErrorCode.EMBEDDING_REQUEST_REJECTED, "The embedding request failed."
+            ) from exc
+
+        self._enter_stage(analysis, AnalysisStage.INDEXING)
+        replace_chunks(db, document.id, chunks, vectors, self.embedder.model)
+        db.commit()
+
     # ---------- 보조 ----------
 
     @staticmethod
@@ -167,22 +211,23 @@ class AnalysisRunner:
         analysis.stage = stage
         analysis.heartbeat_at = datetime.now(UTC)
 
-    def _record_call(self, db: Session, analysis: DocumentAnalysis, record: LLMCallRecord) -> None:
-        db.add(
-            LlmCall(
-                purpose="FIELD_EXTRACTION",
-                provider=self.llm.provider,
-                model=record.model,
-                prompt_version=PROMPT_VERSION,
-                analysis_id=analysis.id,
-                document_id=analysis.document_id,
-                attempt=record.attempt,
-                status=record.status,
-                latency_ms=record.latency_ms,
-                input_tokens=record.input_tokens,
-                output_tokens=record.output_tokens,
-                error_code=record.error_code,
-            )
+    def _record_call(
+        self,
+        db: Session,
+        analysis: DocumentAnalysis,
+        record: LLMCallRecord,
+        purpose: str,
+        provider: str,
+        prompt_version: str | None,
+    ) -> None:
+        record_llm_call(
+            db,
+            purpose=purpose,
+            provider=provider,
+            record=record,
+            prompt_version=prompt_version,
+            analysis_id=analysis.id,
+            document_id=analysis.document_id,
         )
         analysis.heartbeat_at = datetime.now(UTC)
 

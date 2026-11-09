@@ -9,6 +9,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import ServiceUnavailableError
 from app.db.session import get_db, get_sessionmaker
 from app.llm.base import LLMClient
+from app.llm.embeddings import Embedder, OpenAIEmbedder
 from app.llm.openai_client import OpenAIClient
 from app.storage.file_storage import FileStorage, LocalFileStorage
 from app.workers.analysis_runner import AnalysisRunner
@@ -43,6 +44,33 @@ def get_llm_client(settings: SettingsDep) -> LLMClient:
     )
 
 
+@lru_cache
+def _openai_embedder(
+    api_key: str, model: str, dimensions: int, timeout: float, max_retries: int
+) -> OpenAIEmbedder:
+    return OpenAIEmbedder(
+        api_key=api_key,
+        model=model,
+        dimensions=dimensions,
+        timeout=timeout,
+        max_retries=max_retries,
+    )
+
+
+def get_embedder(settings: SettingsDep) -> Embedder:
+    if settings.openai_api_key is None:
+        raise ServiceUnavailableError(
+            "LLM_NOT_CONFIGURED", "The embedding model is not configured (OPENAI_API_KEY)."
+        )
+    return _openai_embedder(
+        settings.openai_api_key.get_secret_value(),
+        settings.embedding_model,
+        settings.embedding_dimensions,
+        settings.llm_timeout_seconds,
+        settings.llm_max_retries,
+    )
+
+
 def get_session_factory() -> Callable[[], Session]:
     return get_sessionmaker()
 
@@ -51,8 +79,13 @@ def get_analysis_runner(
     settings: SettingsDep,
     storage: StorageDep,
     llm: Annotated[LLMClient, Depends(get_llm_client)],
+    embedder: Annotated[Embedder, Depends(get_embedder)],
     session_factory: Annotated[Callable[[], Session], Depends(get_session_factory)],
 ) -> AnalysisRunner:
     return AnalysisRunner(
-        session_factory=session_factory, storage=storage, llm=llm, settings=settings
+        session_factory=session_factory,
+        storage=storage,
+        llm=llm,
+        settings=settings,
+        embedder=embedder,
     )
