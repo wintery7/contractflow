@@ -207,3 +207,14 @@
 
 ## 6. 헬스체크
 - `GET /health/live` → `200 {"status":"ok"}` · `GET /health/ready` → DB `SELECT 1` 성공 시 200, 실패 시 503
+
+---
+
+## 구현 후 변경 사항
+
+- 질의응답 응답에 `reason` 추가: `LOW_RETRIEVAL_SCORE`(LLM 미호출) / `MODEL_DECLINED` / `NO_VALID_CITATION`(근거 없는 답 미반환). `retrieval.min_score_threshold`로 임계값 노출
+- 질의응답 오류: `409 DOCUMENT_NOT_READY`(색인 없음), `409 INDEX_MODEL_MISMATCH`(다른 임베딩 모델로 색인됨), `503 LLM_UNAVAILABLE`/`EMBEDDING_UNAVAILABLE`/`LLM_INVALID_OUTPUT`
+- 업무 생성: AI 제안 승인 시 `title`·`description`·`priority`를 비우면 제안 내용으로 채움. 오류 `400 REVIEW_ITEM_NOT_FOUND`, `409 TASK_ALREADY_EXISTS`, `409 ANALYSIS_NOT_SUCCEEDED`
+- 업무 수정: 바뀐 값이 없으면 version을 올리지 않고 200. `409 VERSION_CONFLICT`의 `details.current_version`
+- 분석 단계(`stage`): `EXTRACTING → CHUNKING → EMBEDDING → INDEXING → FIELD_EXTRACTION`
+- `DocumentResponse.latest_analysis_id`는 구현하지 않음 (`GET /documents/{id}/analyses/latest`로 대체)
