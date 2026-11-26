@@ -12,7 +12,8 @@ from pydantic import BaseModel, Field, model_validator
 
 FieldStatus = Literal["FOUND", "NOT_FOUND", "AMBIGUOUS"]
 Priority = Literal["LOW", "MEDIUM", "HIGH"]
-Verification = Literal["VERIFIED", "UNVERIFIED", "NOT_APPLICABLE"]
+# SUSPICIOUS: 인용문은 원문에 있지만 AI에게 내리는 지시처럼 보인다 (프롬프트 인젝션 의심)
+Verification = Literal["VERIFIED", "SUSPICIOUS", "UNVERIFIED", "NOT_APPLICABLE"]
 
 V = TypeVar("V")
 
@@ -83,6 +84,8 @@ FIELD_NAMES: tuple[str, ...] = tuple(
 
 class VerifiedEvidence(Evidence):
     verified: bool
+    # 기본값이 있어 이 필드가 생기기 전에 저장된 분석 결과도 그대로 읽힌다.
+    suspicious: bool = False
 
 
 class FieldResult(BaseModel, Generic[V]):

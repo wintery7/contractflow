@@ -102,7 +102,8 @@
   "error": null,
   "result": {
     "contract_title":   {"value": "소프트웨어 유지보수 계약서", "status": "FOUND",
-                          "evidence": [{"page": 1, "quote": "소프트웨어 유지보수 계약서"}],
+                          "evidence": [{"page": 1, "quote": "소프트웨어 유지보수 계약서",
+                                        "verified": true, "suspicious": false}],
                           "verification": "VERIFIED"},
     "parties":          {"value": [{"name": "㈜가나", "role": "갑"}, {"name": "㈜다라", "role": "을"}], "...": "..."},
     "start_date":       {"value": "2026-01-01", "...": "..."},
@@ -110,7 +111,7 @@
     "contract_amount":  {"value": {"amount": "12000000", "currency": "KRW"}, "...": "..."},
     "auto_renewal":     {"value": "만료 30일 전 서면 통지 없으면 1년 자동 연장", "...": "..."},
     "termination":      {"value": "...", "...": "..."},
-    "penalty":          {"value": null, "status": "NOT_FOUND", "evidence": [], "verification": "UNVERIFIED"},
+    "penalty":          {"value": null, "status": "NOT_FOUND", "evidence": [], "verification": "NOT_APPLICABLE"},
     "payment_terms":    {"value": "...", "...": "..."},
     "confidentiality":  {"value": "...", "...": "..."},
     "review_items": [
@@ -123,6 +124,17 @@
 ```
 - 금액은 부동소수점 오차 방지를 위해 문자열 decimal.
 - 404 · 테스트: QUEUED/RUNNING일 때 result null, FAILED일 때 error 코드 노출(내부 스택트레이스 미노출)
+
+`verification` 값 (필드·검토 항목마다):
+
+| 값 | 의미 |
+|---|---|
+| `VERIFIED` | 모든 인용문이 해당 페이지 원문에 있다 (정규화 후 부분 문자열) |
+| `SUSPICIOUS` | 인용문은 원문에 있지만 AI에게 내리는 지시처럼 보인다 (`[시스템 지시]`, "이전 지시를 무시하라", "출력하라" 등). 문서에 심어진 프롬프트 인젝션 의심. 해당 인용은 `suspicious: true` |
+| `UNVERIFIED` | 원문에서 찾지 못한 인용문이 있다 (모델이 지어냈거나 페이지를 틀림) |
+| `NOT_APPLICABLE` | 근거가 없다 (`NOT_FOUND`) |
+
+`SUSPICIOUS`와 `UNVERIFIED`는 `warnings`에도 필드 이름과 함께 기록된다. 문서 본문에 지시문처럼 보이는 문장이 있으면, 모델이 그 문장을 인용하지 않았더라도 `warnings`에 페이지 번호와 함께 프롬프트 인젝션 의심 경고가 붙는다.
 
 ### 2.3 `GET /documents/{document_id}/analyses` · `GET /documents/{document_id}/analyses/latest`
 - 목록은 요약(결과 제외), latest는 2.2와 동일. 분석 없음 → latest 404 `ANALYSIS_NOT_FOUND`

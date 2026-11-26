@@ -6,7 +6,8 @@ from app.core.errors import InvalidStateTransitionError
 
 # 분석 로직(추출·정제·프롬프트 구성)이 바뀌면 올린다. 같은 버전·모델·프롬프트로 이미 성공한
 # 분석이 있으면 재사용하고, 하나라도 다르면 새로 분석한다.
-PIPELINE_VERSION = "m3-v1"  # m3: 청킹·임베딩·색인 단계 추가
+# m3: 청킹·임베딩·색인 단계 추가 / m7: 지시문 인용 SUSPICIOUS 표시·문서 인젝션 경고
+PIPELINE_VERSION = "m7-v1"
 
 
 class AnalysisStatus(StrEnum):
