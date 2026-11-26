@@ -118,16 +118,29 @@ uv run pytest                    # 단위 + 통합 (실제 PostgreSQL, Fake LLM 
 uv run pytest -m live            # 실제 OpenAI 호출 (비용 발생, 기본 제외)
 uv run ruff check . && uv run ruff format --check .
 uv run python -m evaluation.run_retrieval_eval   # 검색 품질 실험 (OpenAI 임베딩 사용)
+uv run python -m evaluation.run_answer_eval --max-chars 800 --overlap 100 --top-k 3 --min-score 0.25  # 답변 평가 (LLM 사용)
 ```
 
 - **236개 테스트 통과** (2026-11-09, 로컬 PostgreSQL 16 + pgvector 0.6.2)
 - 통합 테스트는 Alembic으로 스키마를 만들고, 테스트마다 트랜잭션을 롤백해 격리. DB 이름이 `_test`로 끝나지 않으면 실행 거부
 - 실패 시나리오(LLM 타임아웃, 잘못된 JSON, 근거 없는 인용, 스캔 PDF, 동시 수정 충돌 등)를 Fake로 재현
 - CI: [.github/workflows/ci.yml](.github/workflows/ci.yml) — 린트, 마이그레이션 차이 검사, 테스트(pgvector 서비스 컨테이너), Docker 빌드·스모크 테스트
+- live 테스트(실제 OpenAI, 2026-11-26, `gpt-5-mini`): 추출 · RAG 답변 · 문서에 없는 질문 거절 통과. **프롬프트 인젝션 테스트는 4회 중 1회 실패** — 모델이 문서에 심은 지시를 따랐고, 인용 검증은 그 지시문이 실제 문서에 있어 통과시켰다. 사람 승인 없이는 아무 상태도 바뀌지 않는 설계로 피해를 막는다 ([상세](docs/design/07-m2-analysis-notes.md#3-프롬프트-인젝션-방어))
 
 ### 검색·답변 품질 평가
 
-가상 계약서 4건, 질문 40개(사실·위치·복수 조건·비슷한 조항·문서에 없음·모호)로 청크 크기 → 겹침 → top-k → 검색 방식(벡터/BM25/하이브리드)을 한 번에 하나씩 비교한다. 방법과 결과: [docs/evaluation.md](docs/evaluation.md)
+가상 계약서 4건, 질문 40개(사실·위치·복수 조건·비슷한 조항·문서에 없음·모호)로 청크 크기 → 겹침 → top-k → 검색 방식(벡터/BM25/하이브리드)을 한 번에 하나씩 비교한 뒤, 고른 설정으로 40문항 전체를 실제 LLM으로 답변시켰다.
+
+| 지표 (2026-11-26, `text-embedding-3-small` + `gpt-5-mini`, 1회 실행) | 결과 |
+|---|---|
+| 검색 Recall@3 / MRR@10 (800자, 겹침 100, 벡터) | **1.0** / 0.865 (하이브리드 MRR 0.938) |
+| 답할 수 있는 질문 29개: 답변률 · 인용 적중률 | **100%** · **100%** |
+| 문서에 없는 질문 8개: 거절률 | **87.5%** (임계값 차단 1 + 모델 거절 6) |
+| 근거 없는 주장 발생률 | 3.3% (1/30, 실제 내용은 "조항 없음"이라는 맞는 답) |
+| 지연 p50 / p95 | 5.5s / 10.6s |
+
+**확인된 것**: 유사도 임계값만으로는 문서에 없는 질문을 거의 못 거른다(차단율 12.5%). 실질적인 환각 방지는 "LLM 거절 허용 + 실제 발췌문 인용 강제"였다.
+방법·전체 결과·해석: [docs/evaluation.md](docs/evaluation.md)
 
 ## 문서
 
@@ -160,5 +173,6 @@ scripts/       로컬 DB, 고아 파일 정리
 - 인증·권한 미구현 (단일 사용자 데모). 감사 이벤트의 행위자는 `UNAUTHENTICATED_CLIENT`로만 기록
 - 스캔(이미지) PDF는 OCR 미지원 → `NO_TEXT_LAYER`
 - BackgroundTasks는 프로세스 재시작 시 실행 중 작업이 사라짐 (정리만 하고 자동 재실행 없음)
-- 평가는 직접 작성한 가상 계약서 기준이며 실제 업무 문서 성능을 대표하지 않음
+- 평가는 직접 작성한 가상 계약서 기준이며 실제 업무 문서 성능을 대표하지 않음. 평가와 live 테스트는 서비스 기본 모델(`gpt-5.4-mini`)이 아닌 `gpt-5-mini`로 실행
+- 문서에 심어진 지시(프롬프트 인젝션)를 모델이 따를 수 있고, 인용 검증으로는 잡지 못함
 - 문서·질문 내용이 외부 LLM API(OpenAI)로 전송됨
