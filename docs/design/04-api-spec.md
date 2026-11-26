@@ -49,7 +49,7 @@
 | 요청 | `multipart/form-data`, `file` (필수) |
 | 응답 `201` | `DocumentResponse` + `Location` 헤더 |
 | 오류 | 400 빈 파일 · 413 크기 초과 · 415 PDF 아님 · 409 동일 파일 존재(`details.existing_document_id`) |
-| 검증 | 매직바이트 `%PDF-`, 크기 ≤ `MAX_UPLOAD_BYTES`(스트리밍 중 초과 시 즉시 중단), 파일명 정규화 |
+| 검증 | ① 미들웨어: `Content-Length` > 한도+64KB면 본문을 읽기 전에 413 (FastAPI 의존성은 multipart 파싱 *후*에 실행되므로 의존성으로는 조기 차단 불가) ② 서비스: 실제 바이트 수 ≤ `MAX_UPLOAD_BYTES`, 매직바이트 `%PDF-` ③ 파일명 정규화 |
 | DB 변경 | `documents` INSERT, `audit_events` INSERT |
 | 비동기 | 없음 (분석은 별도 요청) |
 
@@ -58,8 +58,7 @@
 {
   "id": "uuid", "original_filename": "service_agreement.pdf",
   "size_bytes": 482113, "status": "UPLOADED", "page_count": null,
-  "error_code": null, "created_at": "...", "updated_at": "...",
-  "latest_analysis_id": null
+  "error_code": null, "created_at": "...", "updated_at": "..."
 }
 ```
 테스트: 정상 업로드 201 / 확장자는 .pdf지만 내용이 PNG → 415 / 0바이트 → 400 / 한도+1바이트 → 413 / 같은 파일 2회 → 409 / 파일명 `../../etc/passwd.pdf` → 저장 키는 UUID, 파일명은 정규화.
@@ -208,3 +207,14 @@
 
 ## 6. 헬스체크
 - `GET /health/live` → `200 {"status":"ok"}` · `GET /health/ready` → DB `SELECT 1` 성공 시 200, 실패 시 503
+
+---
+
+## 구현 후 변경 사항
+
+- 질의응답 응답에 `reason` 추가: `LOW_RETRIEVAL_SCORE`(LLM 미호출) / `MODEL_DECLINED` / `NO_VALID_CITATION`(근거 없는 답 미반환). `retrieval.min_score_threshold`로 임계값 노출
+- 질의응답 오류: `409 DOCUMENT_NOT_READY`(색인 없음), `409 INDEX_MODEL_MISMATCH`(다른 임베딩 모델로 색인됨), `503 LLM_UNAVAILABLE`/`EMBEDDING_UNAVAILABLE`/`LLM_INVALID_OUTPUT`
+- 업무 생성: AI 제안 승인 시 `title`·`description`·`priority`를 비우면 제안 내용으로 채움. 오류 `400 REVIEW_ITEM_NOT_FOUND`, `409 TASK_ALREADY_EXISTS`, `409 ANALYSIS_NOT_SUCCEEDED`
+- 업무 수정: 바뀐 값이 없으면 version을 올리지 않고 200. `409 VERSION_CONFLICT`의 `details.current_version`
+- 분석 단계(`stage`): `EXTRACTING → CHUNKING → EMBEDDING → INDEXING → FIELD_EXTRACTION`
+- `DocumentResponse.latest_analysis_id`는 구현하지 않음 (`GET /documents/{id}/analyses/latest`로 대체)

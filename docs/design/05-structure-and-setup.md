@@ -1,5 +1,7 @@
 # 05. 폴더 구조 · 개발 환경
 
+> ⚠️ M0(설계) 시점의 기록이다. 이후 개발 DB는 pgvector 때문에 로컬 DB(5433)로 바뀌었다. 현재 실행 방법은 [README](../../README.md)를 따른다.
+
 > 상태: M0 초안 (2026-10-16)
 
 ## 1. 권장 폴더 구조
@@ -54,7 +56,6 @@ contract-flow/
 ├── Dockerfile
 ├── pyproject.toml / uv.lock
 ├── alembic.ini
-├── .env.example                 # 커밋 O
 ├── .env                         # 커밋 X
 └── README.md
 ```
@@ -72,7 +73,7 @@ contract-flow/
 | Python | 3.11.9 ✅ |
 | uv | 0.12.5 ✅ |
 | git | 2.55.0 ✅ (작업 폴더는 아직 git 저장소 아님) |
-| Docker | ❌ 미설치 — **M1 시작 전 설치 필요** |
+| Docker | ❌ 미설치 (WSL 미설치). **M1~M4는 로컬 DB(`scripts/local_db.py`, pgserver)로 개발, Docker 배포·검증은 M5** |
 
 ### 준비 절차
 1. **Docker Desktop 설치** (WSL2 백엔드). 설치 후 `docker version`, `docker compose version` 확인.
@@ -108,7 +109,7 @@ contract-flow/
      pgdata:
    ```
    테스트 DB는 같은 컨테이너에 `contractflow_test` 데이터베이스를 별도로 만든다.
-5. `.env.example`
+5. 환경변수 (`.env`, git 제외 — 전체 목록과 기본값은 README 참고)
    ```
    APP_ENV=local
    DATABASE_URL=postgresql+psycopg://contractflow:change-me@localhost:5432/contractflow

@@ -1,0 +1,40 @@
+{"id": "q01", "contract": "service", "type": "fact", "question": "계약기간은 언제부터 언제까지인가요?", "answerable": true, "evidence": ["2026년 1월 1일부터 2026년 12월 31일까지"], "keywords": ["2026년 1월 1일", "2026년 12월 31일"]}
+{"id": "q02", "contract": "service", "type": "fact", "question": "매달 지급하는 금액은 얼마이고 언제까지 지급해야 하나요?", "answerable": true, "evidence": ["금 3,000,000원을 다음 달 15일까지"], "keywords": ["3,000,000", "15일"]}
+{"id": "q03", "contract": "service", "type": "location", "question": "자동 갱신에 관한 조항은 어디에 있나요?", "answerable": true, "evidence": ["제5조(자동 갱신)"], "keywords": ["제5조"]}
+{"id": "q04", "contract": "service", "type": "multi", "question": "갑이 계약을 해지할 수 있는 경우를 모두 알려주세요.", "answerable": true, "evidence": ["서면 시정 요구를 받은 날부터 14일 이내에", "갑은 30일 전에 서면으로 통지하여"], "keywords": ["14일", "30일"]}
+{"id": "q05", "contract": "service", "type": "similar_clause", "question": "장애 복구가 늦어지면 을이 갑에게 내야 하는 금액은 어떻게 정해지나요?", "answerable": true, "evidence": ["지체 1일당 월 용역대금의 1천분의 3"], "keywords": ["1천분의 3"]}
+{"id": "q06", "contract": "service", "type": "not_in_doc", "question": "이 계약의 준거법과 분쟁 시 관할 법원은 어디인가요?", "answerable": false, "evidence": [], "keywords": []}
+{"id": "q07", "contract": "service", "type": "not_in_doc", "question": "계약보증금은 얼마를 내야 하나요?", "answerable": false, "evidence": [], "keywords": []}
+{"id": "q08", "contract": "service", "type": "fact", "question": "비밀유지 의무는 계약이 끝난 뒤 몇 년간 유지되나요?", "answerable": true, "evidence": ["계약 종료 후 3년간"], "keywords": ["3년"]}
+{"id": "q09", "contract": "service", "type": "ambiguous", "question": "부가가치세를 포함한 총 계약금액은 얼마인가요?", "answerable": null, "evidence": ["금 36,000,000원(부가가치세 별도)"], "keywords": ["부가가치세"]}
+{"id": "q10", "contract": "supply", "type": "fact", "question": "센서 모듈의 공급 수량과 단가는 얼마인가요?", "answerable": true, "evidence": ["5,000개로 하며, 단가는 개당 금 12,000원"], "keywords": ["5,000", "12,000"]}
+{"id": "q11", "contract": "supply", "type": "fact", "question": "납품 기한과 납품 장소는 어디인가요?", "answerable": true, "evidence": ["2026년 3월 31일까지 갑의 평택공장"], "keywords": ["3월 31일", "평택"]}
+{"id": "q12", "contract": "supply", "type": "fact", "question": "갑은 납품받은 뒤 며칠 안에 검수해야 하나요?", "answerable": true, "evidence": ["납품을 받은 날부터 7일 이내에 검수"], "keywords": ["7일"]}
+{"id": "q13", "contract": "supply", "type": "location", "question": "하자담보책임은 몇 조에 규정되어 있나요?", "answerable": true, "evidence": ["제8조(하자담보책임)"], "keywords": ["제8조"]}
+{"id": "q14", "contract": "supply", "type": "similar_clause", "question": "을이 납품하지 않을 때 갑이 계약을 해제할 수 있는 조건은 무엇인가요?", "answerable": true, "evidence": ["납품기한으로부터 15일이 지나도록"], "keywords": ["15일"]}
+{"id": "q15", "contract": "supply", "type": "multi", "question": "지체상금은 어떻게 계산하고 상한은 얼마인가요?", "answerable": true, "evidence": ["지체 1일당 미납품 대금의 1천분의 2", "계약금액의 100분의 10을 초과할 수 없다"], "keywords": ["1천분의 2", "100분의 10"]}
+{"id": "q16", "contract": "supply", "type": "not_in_doc", "question": "계약이 자동으로 갱신되는 조건이 있나요?", "answerable": false, "evidence": [], "keywords": []}
+{"id": "q17", "contract": "supply", "type": "not_in_doc", "question": "비밀유지 의무는 언제까지 지켜야 하나요?", "answerable": false, "evidence": [], "keywords": []}
+{"id": "q18", "contract": "supply", "type": "fact", "question": "대금은 언제, 어떤 방법으로 지급하나요?", "answerable": true, "evidence": ["검수 완료일부터 30일 이내에 현금으로"], "keywords": ["30일", "현금"]}
+{"id": "q19", "contract": "supply", "type": "ambiguous", "question": "불합격품을 교체하지 않으면 을은 어떤 불이익을 받나요?", "answerable": null, "evidence": ["불합격을 통보받은 날부터 10일 이내에 교체"], "keywords": ["10일"]}
+{"id": "q20", "contract": "outsourcing", "type": "fact", "question": "월 위탁수수료는 얼마인가요?", "answerable": true, "evidence": ["월 금 25,000,000원(부가가치세 별도)"], "keywords": ["25,000,000"]}
+{"id": "q21", "contract": "outsourcing", "type": "fact", "question": "응답률 기준을 못 맞추면 어떻게 되나요?", "answerable": true, "evidence": ["해당 월 위탁수수료의 100분의 5를 감액"], "keywords": ["100분의 5"]}
+{"id": "q22", "contract": "outsourcing", "type": "multi", "question": "이 계약을 해지할 수 있는 방법을 모두 알려주세요.", "answerable": true, "evidence": ["30일 이내에 이를 시정하지 아니한 경우", "90일 전에 상대방에게 서면으로 통지"], "keywords": ["30일", "90일"]}
+{"id": "q23", "contract": "outsourcing", "type": "fact", "question": "계약이 자동으로 연장되는 조건은 무엇인가요?", "answerable": true, "evidence": ["계약기간 만료 60일 전까지 어느 당사자도 서면으로 이의를 제기하지 아니한 경우"], "keywords": ["60일", "1년"]}
+{"id": "q24", "contract": "outsourcing", "type": "location", "question": "개인정보 처리와 파기에 관한 내용은 어느 조항에 있나요?", "answerable": true, "evidence": ["제6조(개인정보의 처리)"], "keywords": ["제6조"]}
+{"id": "q25", "contract": "outsourcing", "type": "fact", "question": "을이 업무를 다른 업체에 다시 맡길 수 있나요?", "answerable": true, "evidence": ["갑의 사전 서면 동의 없이 위탁받은 업무의 전부 또는 일부를"], "keywords": ["사전 서면 동의"]}
+{"id": "q26", "contract": "outsourcing", "type": "similar_clause", "question": "을이 계약을 위반했을 때 손해배상 책임의 한도는 얼마인가요?", "answerable": true, "evidence": ["직전 12개월 동안 지급된 위탁수수료 총액"], "keywords": ["12개월"]}
+{"id": "q27", "contract": "outsourcing", "type": "not_in_doc", "question": "업무가 늦어지면 을이 내야 하는 지체상금은 얼마인가요?", "answerable": false, "evidence": [], "keywords": []}
+{"id": "q28", "contract": "outsourcing", "type": "fact", "question": "비밀유지 의무는 계약 종료 후 몇 년간 유지되나요?", "answerable": true, "evidence": ["계약 종료 후 5년간"], "keywords": ["5년"]}
+{"id": "q29", "contract": "outsourcing", "type": "multi", "question": "계약이 끝나면 고객 개인정보는 어떻게 처리해야 하나요?", "answerable": true, "evidence": ["개인정보를 지체 없이 파기하고", "파기 확인서를 갑에게 제출"], "keywords": ["파기", "확인서"]}
+{"id": "q30", "contract": "outsourcing", "type": "not_in_doc", "question": "이 계약의 준거법은 무엇인가요?", "answerable": false, "evidence": [], "keywords": []}
+{"id": "q31", "contract": "nda", "type": "fact", "question": "분쟁이 생기면 어느 법원에서 다루나요?", "answerable": true, "evidence": ["서울중앙지방법원을 제1심 전속 관할 법원으로"], "keywords": ["서울중앙지방법원"]}
+{"id": "q32", "contract": "nda", "type": "fact", "question": "비밀유지 의무를 어기면 위약벌은 얼마인가요?", "answerable": true, "evidence": ["금 100,000,000원을 위약벌로"], "keywords": ["100,000,000"]}
+{"id": "q33", "contract": "nda", "type": "multi", "question": "말로만 전달한 정보도 비밀정보로 보호받나요?", "answerable": true, "evidence": ["제공한 날부터 30일 이내에 서면으로 비밀임을 확인한 경우에 한하여"], "keywords": ["30일"]}
+{"id": "q34", "contract": "nda", "type": "multi", "question": "계약기간과 비밀유지 의무가 유지되는 기간은 각각 얼마인가요?", "answerable": true, "evidence": ["체결일부터 2년간", "종료된 후에도 3년간 존속"], "keywords": ["2년", "3년"]}
+{"id": "q35", "contract": "nda", "type": "fact", "question": "비밀자료를 돌려달라는 요청을 받으면 언제까지 반환해야 하나요?", "answerable": true, "evidence": ["요청을 받은 날부터 10일 이내에"], "keywords": ["10일"]}
+{"id": "q36", "contract": "nda", "type": "location", "question": "비밀정보에서 제외되는 정보는 어디에 규정되어 있나요?", "answerable": true, "evidence": ["제3조(비밀정보의 예외)"], "keywords": ["제3조"]}
+{"id": "q37", "contract": "nda", "type": "similar_clause", "question": "위약벌 외에 추가로 손해배상을 청구할 수 있나요?", "answerable": true, "evidence": ["위약벌을 초과하는 손해가 발생한 경우"], "keywords": ["초과"]}
+{"id": "q38", "contract": "nda", "type": "not_in_doc", "question": "이 계약의 계약금액은 얼마인가요?", "answerable": false, "evidence": [], "keywords": []}
+{"id": "q39", "contract": "nda", "type": "not_in_doc", "question": "계약기간이 끝나면 자동으로 갱신되나요?", "answerable": false, "evidence": [], "keywords": []}
+{"id": "q40", "contract": "nda", "type": "ambiguous", "question": "공동연구 검토가 끝나면 비밀유지 의무도 바로 끝나나요?", "answerable": null, "evidence": ["종료된 후에도 3년간 존속"], "keywords": ["3년"]}

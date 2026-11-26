@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "feature/**"]
+  pull_request:
+
+jobs:
+  test:
+    name: Lint & tests (PostgreSQL + pgvector)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: contractflow
+          POSTGRES_PASSWORD: change-me
+          POSTGRES_DB: contractflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U contractflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://contractflow:change-me@localhost:5432/contractflow_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Migration drift check
+        env:
+          DATABASE_URL: postgresql+psycopg://contractflow:change-me@localhost:5432/contractflow_test
+        run: |
+          uv run alembic upgrade head
+          uv run alembic check
+      # 외부 LLM 호출 테스트(-m live)는 비용·네트워크 때문에 기본 실행에서 제외된다.
+      - name: Tests
+        run: uv run pytest
+
+  docker:
+    name: Docker build & smoke test
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start
+        run: docker compose up -d --build --wait --wait-timeout 120
+      - name: Smoke test
+        run: |
+          curl -fsS http://localhost:8000/health/ready
+          printf '%%PDF-1.4\n%%smoke test\n' > smoke.pdf
+          curl -fsS -o upload.json -w "upload status %{http_code}\n" \
+            -F "file=@smoke.pdf;type=application/pdf" http://localhost:8000/api/v1/documents
+          curl -fsS http://localhost:8000/api/v1/documents | grep -q '"total":1'
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs app
+      - name: Stop
+        if: always()
+        run: docker compose down -v

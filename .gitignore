@@ -1,7 +1,6 @@
 # secrets
 .env
 .env.*
-!.env.example
 
 # python
 __pycache__/
@@ -21,3 +20,6 @@ var/
 .idea/
 .DS_Store
 Thumbs.db
+
+# evaluation
+evaluation/.cache/
