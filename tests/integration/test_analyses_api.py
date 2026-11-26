@@ -74,7 +74,14 @@ def test_analysis_runs_in_background_and_returns_verified_result(
     assert result["end_date"] == {
         "status": "FOUND",
         "value": "2026-12-31",
-        "evidence": [{"page": 1, "quote": "2026년 12월 31일까지로 한다", "verified": True}],
+        "evidence": [
+            {
+                "page": 1,
+                "quote": "2026년 12월 31일까지로 한다",
+                "verified": True,
+                "suspicious": False,
+            }
+        ],
         "verification": "VERIFIED",
     }
     assert result["contract_amount"]["value"] == {"amount": "36000000", "currency": "KRW"}
